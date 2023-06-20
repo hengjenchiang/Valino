@@ -44,13 +44,14 @@ function randomRgba() {
     Math.random() * 255
   })`;
 }
+let canvas;
 (() => {
-  const canvas = document.getElementById('canvas');
+  canvas = document.getElementById('canvas');
   const context = canvas.getContext('2d');
 
   let start;
-  let position = new Vector2D(SELF_RADIUS + 10, SELF_RADIUS + 10);
-  let accelerate = new Vector2D(0, 0);
+  let dvdPosition = new Vector2D(SELF_RADIUS + 10, SELF_RADIUS + 10);
+  let selfPosition = new Vector2D(SELF_RADIUS + 10, SELF_RADIUS + 10);
 
   let dvd = new Image();
   dvd.src = 'DVD_logo.svg';
@@ -66,6 +67,8 @@ function randomRgba() {
   };
   let dvdColor = randomRgba();
 
+  let pressedKeys = new Set();
+
   function step(timestamp) {
     if (!start) start = timestamp;
     const dt = (timestamp - start) * 0.001;
@@ -76,25 +79,44 @@ function randomRgba() {
     canvas.width = width;
     canvas.height = height;
 
-    position = position.add(accelerate.scale(dt));
+    let accelerate = new Vector2D(0, 0);
+    for (const key of pressedKeys) {
+      if (key in DIRECTION_MAP) {
+        accelerate = accelerate.add(DIRECTION_MAP[key]);
+      }
+    }
 
-    if (position.x + SELF_RADIUS >= width || position.x <= 0) {
+    selfPosition = selfPosition.add(accelerate.scale(dt));
+
+    if (dvdPosition.x + SELF_RADIUS >= width || dvdPosition.x <= 0) {
       dx = dx.x > 0 ? dxMinus : dxPlus;
       dvdColor = randomRgba();
     }
-    if (position.y + SELF_RADIUS > height || position.y <= 0) {
+    if (dvdPosition.y + SELF_RADIUS > height || dvdPosition.y <= 0) {
       dy = dy.y > 0 ? dyMinus : dyPlus;
       dvdColor = randomRgba();
     }
-    position = position.add(dx.scale(dt));
-    position = position.add(dy.scale(dt));
+
+    dvdPosition = dvdPosition.add(dx.scale(dt));
+    dvdPosition = dvdPosition.add(dy.scale(dt));
 
     context.clearRect(0, 0, width, height);
-    // drawCircle(context, position.x, position.y, SELF_RADIUS, '#999999');
+    context.fillRect(0, 0, canvas.width, canvas.height, 'red');
+
+    // TODO: refactor to separate function
+    drawCircle(context, selfPosition.x, selfPosition.y, SELF_RADIUS, 'red');
+    context.clip();
+    // context.save();
+
     context.fillStyle = dvdColor;
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    context.globalCompositeOperation = 'destination-in';
-    context.drawImage(dvd, position.x, position.y, SELF_RADIUS, SELF_RADIUS);
+    // context.globalCompositeOperation = 'destination-in';
+    context.drawImage(
+      dvd,
+      dvdPosition.x,
+      dvdPosition.y,
+      SELF_RADIUS,
+      SELF_RADIUS
+    );
 
     // renderPath2D(context, dvdLogo, 'blue');
 
@@ -103,14 +125,10 @@ function randomRgba() {
   window.requestAnimationFrame(step);
 
   document.addEventListener('keydown', (event) => {
-    if (event.code in DIRECTION_MAP) {
-      accelerate = accelerate.add(DIRECTION_MAP[event.code]);
-    }
+    pressedKeys.add(event.code);
   });
 
   document.addEventListener('keyup', (event) => {
-    if (event.code in DIRECTION_MAP) {
-      accelerate = accelerate.sub(DIRECTION_MAP[event.code]);
-    }
+    pressedKeys.delete(event.code);
   });
 })();
