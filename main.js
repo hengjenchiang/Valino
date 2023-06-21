@@ -1,4 +1,5 @@
-const SELF_RADIUS = 250.0;
+const SELF_RADIUS = 70.0;
+const DVD_RADIUS = 350.0;
 const MOVE_SPEED = 600;
 const TEXT_LINE_HEIGHT = 18.0;
 class Vector2D {
@@ -57,7 +58,7 @@ let canvas;
   const context = canvas.getContext('2d');
 
   let start;
-  let dvdPosition = new Vector2D(SELF_RADIUS + 10, SELF_RADIUS + 10);
+  let dvdPosition = new Vector2D(DVD_RADIUS + 10, DVD_RADIUS + 10);
   let selfPosition = new Vector2D(SELF_RADIUS + 10, SELF_RADIUS + 10);
 
   let dvd = new Image();
@@ -93,18 +94,35 @@ let canvas;
       }
     }
 
-    selfPosition = selfPosition.add(accelerate.scale(dt));
+    // selfPosition = selfPosition.add(accelerate.scale(dt));
+
+    if (
+      selfPosition.x + SELF_RADIUS + dt * MOVE_SPEED <= width &&
+      selfPosition.x - SELF_RADIUS - dt * MOVE_SPEED >= 0 &&
+      selfPosition.y + SELF_RADIUS + dt * MOVE_SPEED <= height &&
+      selfPosition.y - SELF_RADIUS - dt * MOVE_SPEED >= 0
+    )
+      selfPosition = selfPosition.add(accelerate.scale(dt));
+    else
+      selfPosition = new Vector2D(
+        selfPosition.x + SELF_RADIUS + dt * MOVE_SPEED > width
+          ? selfPosition.x - 1
+          : selfPosition.x + 1,
+        selfPosition.y + SELF_RADIUS + dt * MOVE_SPEED > height
+          ? selfPosition.y - 1
+          : selfPosition.y + 1
+      );
 
     // adding dx.x * dt prevents border shaking
     if (
-      dvdPosition.x + SELF_RADIUS + dx.x * dt >= width ||
+      dvdPosition.x + DVD_RADIUS + dx.x * dt >= width ||
       dvdPosition.x + dx.x * dt <= 0
     ) {
       dx = dx.x > 0 ? dxMinus : dxPlus;
       dvdColor = randomRgba();
     }
     if (
-      dvdPosition.y + SELF_RADIUS + dy.y * dt > height ||
+      dvdPosition.y + DVD_RADIUS + dy.y * dt > height ||
       dvdPosition.y + dy.y * dt <= 0
     ) {
       dy = dy.y > 0 ? dyMinus : dyPlus;
@@ -122,15 +140,15 @@ let canvas;
       dvd,
       dvdPosition.x,
       dvdPosition.y,
-      SELF_RADIUS,
-      SELF_RADIUS
+      DVD_RADIUS,
+      DVD_RADIUS
     );
     context.fillStyle = dvdColor;
     context.globalCompositeOperation = 'source-in';
     context.fillRect(0, 0, canvas.width, canvas.height);
 
     context.globalCompositeOperation = 'source-over';
-    drawCircle(context, selfPosition.x, selfPosition.y, 50, 'red');
+    drawCircle(context, selfPosition.x, selfPosition.y, SELF_RADIUS, 'red');
     window.requestAnimationFrame(animate);
   }
   window.requestAnimationFrame(animate);
