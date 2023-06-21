@@ -1,5 +1,6 @@
 const SELF_RADIUS = 250.0;
 const MOVE_SPEED = 600;
+const TEXT_LINE_HEIGHT = 18.0;
 class Vector2D {
   constructor(x, y) {
     this.x = x;
@@ -32,6 +33,12 @@ function drawCircle(context, x, y, radius, color = 'red') {
   context.arc(x, y, radius, 0.0, 2 * Math.PI);
   context.stroke();
   context.fill();
+
+  context.font = '20px Arial';
+  context.fillStyle = 'blue';
+  context.textAlign = 'center';
+  context.fillText('W A S D', x, y);
+  context.fillText('to move', x, y + TEXT_LINE_HEIGHT);
 }
 function renderPath2D(context, path, color = 'blue') {
   context.fillStyle = color;
@@ -62,14 +69,14 @@ let canvas;
   const dyMinus = new Vector2D(0, -MOVE_SPEED);
   let dy = dyPlus;
   dvd.onload = function () {
-    // should draw here TODO:
+    // should draw here TODO: put animate here
     console.log('load');
   };
   let dvdColor = randomRgba();
 
   let pressedKeys = new Set();
 
-  function step(timestamp) {
+  function animate(timestamp) {
     if (!start) start = timestamp;
     const dt = (timestamp - start) * 0.001;
     start = timestamp;
@@ -88,11 +95,18 @@ let canvas;
 
     selfPosition = selfPosition.add(accelerate.scale(dt));
 
-    if (dvdPosition.x + SELF_RADIUS >= width || dvdPosition.x <= 0) {
+    // adding dx.x * dt prevents border shaking
+    if (
+      dvdPosition.x + SELF_RADIUS + dx.x * dt >= width ||
+      dvdPosition.x + dx.x * dt <= 0
+    ) {
       dx = dx.x > 0 ? dxMinus : dxPlus;
       dvdColor = randomRgba();
     }
-    if (dvdPosition.y + SELF_RADIUS > height || dvdPosition.y <= 0) {
+    if (
+      dvdPosition.y + SELF_RADIUS + dy.y * dt > height ||
+      dvdPosition.y + dy.y * dt <= 0
+    ) {
       dy = dy.y > 0 ? dyMinus : dyPlus;
       dvdColor = randomRgba();
     }
@@ -101,15 +115,9 @@ let canvas;
     dvdPosition = dvdPosition.add(dy.scale(dt));
 
     context.clearRect(0, 0, width, height);
-    context.fillRect(0, 0, canvas.width, canvas.height, 'red');
 
     // TODO: refactor to separate function
-    drawCircle(context, selfPosition.x, selfPosition.y, SELF_RADIUS, 'red');
-    context.clip();
-    // context.save();
 
-    context.fillStyle = dvdColor;
-    // context.globalCompositeOperation = 'destination-in';
     context.drawImage(
       dvd,
       dvdPosition.x,
@@ -117,12 +125,15 @@ let canvas;
       SELF_RADIUS,
       SELF_RADIUS
     );
+    context.fillStyle = dvdColor;
+    context.globalCompositeOperation = 'source-in';
+    context.fillRect(0, 0, canvas.width, canvas.height);
 
-    // renderPath2D(context, dvdLogo, 'blue');
-
-    window.requestAnimationFrame(step);
+    context.globalCompositeOperation = 'source-over';
+    drawCircle(context, selfPosition.x, selfPosition.y, 50, 'red');
+    window.requestAnimationFrame(animate);
   }
-  window.requestAnimationFrame(step);
+  window.requestAnimationFrame(animate);
 
   document.addEventListener('keydown', (event) => {
     pressedKeys.add(event.code);
